@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=generaladmin
-WorkingDirectory=/var/www/numaiq-worker
-EnvironmentFile=/var/www/numaiq-worker/.env
+WorkingDirectory=/var/www/worker
+EnvironmentFile=/var/www/worker/.env
 ExecStart=/usr/bin/node src/index.js
 Restart=on-failure
 RestartSec=5

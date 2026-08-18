@@ -3,9 +3,27 @@ import { transcribeAudio } from './deepgram.js'
 import { scoreTranscript } from './deepseek.js'
 import { processMockJob } from './mockPipeline.js'
 
+function llmApiKey() {
+  return (process.env.DEEPINFRA_API_KEY || process.env.DEEPSEEK_API_KEY || '').trim()
+}
+
+export function getWorkerModeReasons() {
+  if (process.env.WORKER_MODE === 'mock') {
+    return ['WORKER_MODE is set to mock']
+  }
+
+  const reasons = []
+  if (!process.env.DEEPGRAM_API_KEY?.trim()) {
+    reasons.push('DEEPGRAM_API_KEY is missing or empty')
+  }
+  if (!llmApiKey()) {
+    reasons.push('DEEPINFRA_API_KEY is missing or empty (DEEPSEEK_API_KEY also accepted)')
+  }
+  return reasons
+}
+
 export function getWorkerMode() {
-  if (process.env.WORKER_MODE === 'mock') return 'mock'
-  if (process.env.DEEPGRAM_API_KEY && process.env.DEEPINFRA_API_KEY) return 'live'
+  if (getWorkerModeReasons().length === 0) return 'live'
   return 'mock'
 }
 

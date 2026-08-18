@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import { WORKER_CALLBACK_HEADER } from './contract.js'
-import { getWorkerMode, processJob } from './pipeline.js'
+import { getWorkerMode, getWorkerModeReasons, processJob } from './pipeline.js'
 import { enqueueJob, getQueueStats } from './jobQueue.js'
 
 const app = express()
@@ -19,7 +19,14 @@ function requireWorkerSecret(req, res, next) {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', mode: workerMode, version: '0.2.0', queue: getQueueStats() })
+  const mode = getWorkerMode()
+  res.json({
+    status: 'ok',
+    mode,
+    version: '0.2.0',
+    queue: getQueueStats(),
+    ...(mode === 'mock' ? { modeReasons: getWorkerModeReasons() } : {}),
+  })
 })
 
 app.post('/jobs', requireWorkerSecret, async (req, res) => {
@@ -67,6 +74,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Concurrency: ${maxConcurrent} jobs at a time`)
   console.log(`  Mode: ${workerMode}`)
   if (workerMode === 'mock') {
+    for (const reason of getWorkerModeReasons()) {
+      console.log(`  Mock reason: ${reason}`)
+    }
     console.log('  Set DEEPGRAM_API_KEY + DEEPINFRA_API_KEY (or unset WORKER_MODE=mock) for live scoring')
   }
 })

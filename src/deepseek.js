@@ -88,7 +88,7 @@ const DEFAULT_DEEPINFRA_URL = 'https://api.deepinfra.com/v1/openai/chat/completi
 const DEFAULT_DEEPINFRA_MODEL = 'deepseek-ai/DeepSeek-V4-Flash'
 
 export async function scoreTranscript(scorecard, transcriptText) {
-  const apiKey = process.env.DEEPINFRA_API_KEY
+  const apiKey = (process.env.DEEPINFRA_API_KEY || process.env.DEEPSEEK_API_KEY || '').trim()
   if (!apiKey) {
     throw new Error('DEEPINFRA_API_KEY is not configured on the worker')
   }
