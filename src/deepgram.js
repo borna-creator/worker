@@ -26,8 +26,6 @@ function buildSpeakerSegments(utterances) {
     startSec: u.start,
     endSec: u.end,
     text: u.transcript,
-    sentiment: u.sentiment ?? null,
-    sentimentScore: u.sentiment_score ?? null,
   }))
 }
 
@@ -52,8 +50,7 @@ function normalizeOverallSentiment(sentiments) {
   return sentiments
 }
 
-export function parseDeepgramResponse(result, sttSettings) {
-  const settings = normalizeSttSettings(sttSettings)
+export function parseDeepgramResponse(result) {
   const alt = result?.results?.channels?.[0]?.alternatives?.[0]
   const fullText = alt?.transcript?.trim() ?? ''
 
@@ -67,14 +64,7 @@ export function parseDeepgramResponse(result, sttSettings) {
       result?.results?.summary?.result ??
       null,
     sentiment: normalizeOverallSentiment(result?.results?.sentiments),
-    entities: settings.detectEntities ? (alt?.entities ?? null) : null,
-    paragraphs: settings.paragraphs ? (alt?.paragraphs?.transcript ?? null) : null,
-    utterances: settings.utterances ? (result?.results?.utterances ?? null) : null,
     speakers: buildSpeakerSegments(result?.results?.utterances),
-    metadata: {
-      duration: result?.metadata?.duration ?? null,
-      model: result?.metadata?.model_info ?? null,
-    },
   }
 
   return { fullText, segments }
@@ -88,5 +78,5 @@ export async function transcribeAudio(buffer, mimeType, scorecard) {
   const response = await deepgram.listen.v1.media.transcribeFile(buffer, options)
 
   const result = response?.data ?? response
-  return parseDeepgramResponse(result, scorecard.sttSettings)
+  return parseDeepgramResponse(result)
 }

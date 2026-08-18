@@ -1,4 +1,5 @@
 import { WORKER_CALLBACK_HEADER } from './contract.js'
+import { compactTranscriptForCallback } from './transcriptCompact.js'
 
 const QUESTION_TYPE_LABELS = {
   YES_NO: 'Yes / No',
@@ -103,7 +104,7 @@ export async function processMockJob(job) {
     },
     body: JSON.stringify({
       status: 'COMPLETED',
-      transcript,
+      transcript: compactTranscriptForCallback(transcript),
       results,
     }),
   })

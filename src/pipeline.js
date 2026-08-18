@@ -2,6 +2,7 @@ import { WORKER_CALLBACK_HEADER } from './contract.js'
 import { transcribeAudio } from './deepgram.js'
 import { scoreTranscript } from './deepseek.js'
 import { assignSpeakerRoles, enrichTranscriptWithRoles } from './speakerRoles.js'
+import { compactTranscriptForCallback } from './transcriptCompact.js'
 import { processMockJob } from './mockPipeline.js'
 
 function llmApiKey() {
@@ -73,7 +74,7 @@ export async function processJob(job) {
 
   return postCallback(job, {
     status: 'COMPLETED',
-    transcript: enrichedTranscript,
+    transcript: compactTranscriptForCallback(enrichedTranscript),
     results,
   })
 }
