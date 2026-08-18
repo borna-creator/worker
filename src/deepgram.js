@@ -31,6 +31,27 @@ function buildSpeakerSegments(utterances) {
   }))
 }
 
+function normalizeOverallSentiment(sentiments) {
+  if (!sentiments) return null
+
+  const average = sentiments.average
+  if (average && typeof average === 'object') {
+    return {
+      average: average.sentiment ?? null,
+      sentiment_score: average.sentiment_score ?? null,
+    }
+  }
+
+  if (typeof sentiments.sentiment === 'string') {
+    return {
+      average: sentiments.sentiment,
+      sentiment_score: sentiments.sentiment_score ?? null,
+    }
+  }
+
+  return sentiments
+}
+
 export function parseDeepgramResponse(result, sttSettings) {
   const settings = normalizeSttSettings(sttSettings)
   const alt = result?.results?.channels?.[0]?.alternatives?.[0]
@@ -45,7 +66,7 @@ export function parseDeepgramResponse(result, sttSettings) {
       result?.results?.summary?.short ??
       result?.results?.summary?.result ??
       null,
-    sentiment: result?.results?.sentiments ?? null,
+    sentiment: normalizeOverallSentiment(result?.results?.sentiments),
     entities: settings.detectEntities ? (alt?.entities ?? null) : null,
     paragraphs: settings.paragraphs ? (alt?.paragraphs?.transcript ?? null) : null,
     utterances: settings.utterances ? (result?.results?.utterances ?? null) : null,
