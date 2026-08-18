@@ -1,0 +1,19 @@
+{
+  "name": "numaiq-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "NumaIQ QA worker service (VPS 2) — mock scoring now, Nova + DeepSeek in Phase 3",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "health": "node scripts/health-check.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=NumaIQ QA Worker (VPS 2)
+After=network.target
+
+[Service]
+Type=simple
+User=generaladmin
+WorkingDirectory=/var/www/numaiq-worker
+EnvironmentFile=/var/www/numaiq-worker/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
