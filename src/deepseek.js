@@ -84,14 +84,19 @@ function normalizeResult(raw, criterion) {
   }
 }
 
+const DEFAULT_DEEPINFRA_URL = 'https://api.deepinfra.com/v1/openai/chat/completions'
+const DEFAULT_DEEPINFRA_MODEL = 'deepseek-ai/DeepSeek-V4-Flash'
+
 export async function scoreTranscript(scorecard, transcriptText) {
-  const apiKey = process.env.DEEPSEEK_API_KEY
+  const apiKey = process.env.DEEPINFRA_API_KEY
   if (!apiKey) {
-    throw new Error('DEEPSEEK_API_KEY is not configured on the worker')
+    throw new Error('DEEPINFRA_API_KEY is not configured on the worker')
   }
 
-  const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat'
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
+  const model = process.env.DEEPINFRA_MODEL || DEFAULT_DEEPINFRA_MODEL
+  const apiUrl = process.env.DEEPINFRA_API_URL || DEFAULT_DEEPINFRA_URL
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -113,25 +118,25 @@ export async function scoreTranscript(scorecard, transcriptText) {
 
   if (!response.ok) {
     const body = await response.text()
-    throw new Error(`DeepSeek API error (${response.status}): ${body}`)
+    throw new Error(`DeepInfra API error (${response.status}): ${body}`)
   }
 
   const payload = await response.json()
   const content = payload?.choices?.[0]?.message?.content
   if (!content) {
-    throw new Error('DeepSeek returned an empty response')
+    throw new Error('DeepInfra returned an empty response')
   }
 
   let parsed
   try {
     parsed = JSON.parse(content)
   } catch {
-    throw new Error('DeepSeek returned invalid JSON')
+    throw new Error('DeepInfra returned invalid JSON')
   }
 
   const rawResults = parsed?.results
   if (!Array.isArray(rawResults) || rawResults.length === 0) {
-    throw new Error('DeepSeek response missing results array')
+    throw new Error('DeepInfra response missing results array')
   }
 
   const byId = new Map(rawResults.map((r) => [r.criterionId, r]))

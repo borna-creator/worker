@@ -67,6 +67,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Concurrency: ${maxConcurrent} jobs at a time`)
   console.log(`  Mode: ${workerMode}`)
   if (workerMode === 'mock') {
-    console.log('  Set DEEPGRAM_API_KEY + DEEPSEEK_API_KEY (or unset WORKER_MODE=mock) for live scoring')
+    console.log('  Set DEEPGRAM_API_KEY + DEEPINFRA_API_KEY (or unset WORKER_MODE=mock) for live scoring')
   }
 })

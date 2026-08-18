@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "NumaIQ QA worker service (VPS 2) — Deepgram Nova-3 STT + DeepSeek scoring",
+  "description": "NumaIQ QA worker service (VPS 2) — Deepgram Nova-3 STT + DeepInfra DeepSeek V4 scoring",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",

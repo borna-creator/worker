@@ -5,7 +5,7 @@ import { processMockJob } from './mockPipeline.js'
 
 export function getWorkerMode() {
   if (process.env.WORKER_MODE === 'mock') return 'mock'
-  if (process.env.DEEPGRAM_API_KEY && process.env.DEEPSEEK_API_KEY) return 'live'
+  if (process.env.DEEPGRAM_API_KEY && process.env.DEEPINFRA_API_KEY) return 'live'
   return 'mock'
 }
 

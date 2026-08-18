@@ -1,6 +1,6 @@
 # NumaIQ Worker (VPS 2)
 
-Standalone service that receives QA jobs from the NumaIQ API (VPS 1), downloads call audio, transcribes with **Deepgram Nova-3**, scores with **DeepSeek**, and posts results back.
+Standalone service that receives QA jobs from the NumaIQ API (VPS 1), downloads call audio, transcribes with **Deepgram Nova-3**, and scores with **DeepSeek V4 Flash via DeepInfra**.
 
 **Phase 3:** Per-scorecard Deepgram feature toggles (summarization, sentiment, diarization, redaction, etc.) configured in the NumaIQ UI under each scorecard.
 
@@ -9,7 +9,7 @@ Standalone service that receives QA jobs from the NumaIQ API (VPS 1), downloads 
 | Server | Role | Required env |
 |--------|------|--------------|
 | VPS 1 | NumaIQ API + UI | `WORKER_SECRET`, `WORKER_URL=http://<vps2-ip>:4000`, `API_DOMAIN` |
-| VPS 2 | This worker | `WORKER_SECRET`, `DEEPGRAM_API_KEY`, `DEEPSEEK_API_KEY`, `WORKER_PORT=4000` |
+| VPS 2 | This worker | `WORKER_SECRET`, `DEEPGRAM_API_KEY`, `DEEPINFRA_API_KEY`, `WORKER_PORT=4000` |
 
 Set `WORKER_MODE=mock` on VPS 2 to skip API keys and use placeholder transcript/scores (Phase 2 behavior).
 
