@@ -1,4 +1,4 @@
-import { chatCompletionJson } from './deepinfra.js'
+import { chatCompletionJson, extractArrayField, formatMissingArrayError } from './deepinfra.js'
 
 const MAX_SAMPLES_PER_SPEAKER = 8
 const MAX_SAMPLE_CHARS = 220
@@ -87,10 +87,34 @@ function normalizeRole(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+const ROLES_JSON_SCHEMA = {
+  name: 'speaker_roles',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      roles: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            speakerId: { type: 'string' },
+            role: { type: 'string' },
+          },
+          required: ['speakerId', 'role'],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ['roles'],
+    additionalProperties: false,
+  },
+}
+
 function parseRoleMap(parsed, expectedSpeakerIds) {
-  const roles = parsed?.roles
-  if (!Array.isArray(roles)) {
-    throw new Error('DeepInfra response missing roles array')
+  const roles = extractArrayField(parsed, ['roles', 'speakers', 'speakerRoles'])
+  if (!roles) {
+    throw new Error(formatMissingArrayError('roles', ['roles'], parsed))
   }
 
   const map = {}
@@ -125,6 +149,8 @@ export async function assignSpeakerRoles(transcript) {
     system: 'You assign speaker roles in call center transcripts. Respond with valid JSON only.',
     user: buildRolePrompt(turns),
     temperature: 0.1,
+    maxTokens: 1024,
+    jsonSchema: ROLES_JSON_SCHEMA,
   })
 
   return parseRoleMap(parsed, speakerIds)
