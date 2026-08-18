@@ -138,4 +138,4 @@ sudo systemctl enable --now numaiq-worker
 sudo systemctl status numaiq-worker
 ```
 
-Adjust `User` and `WorkingDirectory` in the unit file if your paths differ.
+Adjust `User`, `WorkingDirectory`, and `EnvironmentFile` in the unit file if your paths differ (e.g. `User=root` when the app lives under `/var/www/worker` owned by root).

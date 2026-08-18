@@ -4,7 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=generaladmin
+# Match the user that owns /var/www/worker on your VPS (root or generaladmin)
+User=root
 WorkingDirectory=/var/www/worker
 EnvironmentFile=/var/www/worker/.env
 ExecStart=/usr/bin/node src/index.js
