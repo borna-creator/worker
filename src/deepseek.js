@@ -1,3 +1,5 @@
+import { chatCompletionJson } from './deepinfra.js'
+
 const VALID_YES_NO = new Set(['YES', 'NO'])
 const VALID_EGP = new Set(['EXCELLENT', 'GOOD', 'POOR'])
 const VALID_CONVERSATIONAL = new Set(['DISCUSSED', 'NOT_DISCUSSED', 'PARTIAL'])
@@ -84,55 +86,12 @@ function normalizeResult(raw, criterion) {
   }
 }
 
-const DEFAULT_DEEPINFRA_URL = 'https://api.deepinfra.com/v1/openai/chat/completions'
-const DEFAULT_DEEPINFRA_MODEL = 'deepseek-ai/DeepSeek-V4-Flash'
-
 export async function scoreTranscript(scorecard, transcriptText) {
-  const apiKey = (process.env.DEEPINFRA_API_KEY || process.env.DEEPSEEK_API_KEY || '').trim()
-  if (!apiKey) {
-    throw new Error('DEEPINFRA_API_KEY is not configured on the worker')
-  }
-
-  const model = process.env.DEEPINFRA_MODEL || DEFAULT_DEEPINFRA_MODEL
-  const apiUrl = process.env.DEEPINFRA_API_URL || DEFAULT_DEEPINFRA_URL
-
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You score call center QA criteria from transcripts. Respond with valid JSON only.',
-        },
-        { role: 'user', content: buildScoringPrompt(scorecard, transcriptText) },
-      ],
-    }),
+  const parsed = await chatCompletionJson({
+    system: 'You score call center QA criteria from transcripts. Respond with valid JSON only.',
+    user: buildScoringPrompt(scorecard, transcriptText),
+    temperature: 0.2,
   })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`DeepInfra API error (${response.status}): ${body}`)
-  }
-
-  const payload = await response.json()
-  const content = payload?.choices?.[0]?.message?.content
-  if (!content) {
-    throw new Error('DeepInfra returned an empty response')
-  }
-
-  let parsed
-  try {
-    parsed = JSON.parse(content)
-  } catch {
-    throw new Error('DeepInfra returned invalid JSON')
-  }
 
   const rawResults = parsed?.results
   if (!Array.isArray(rawResults) || rawResults.length === 0) {

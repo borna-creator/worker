@@ -70,11 +70,17 @@ export function buildMockTranscript(scorecard) {
 
   return {
     fullText,
-    segments: [
-      { speaker: 'agent', startSec: 0, endSec: 4, text: 'Thank you for calling, how can I help you today?' },
-      { speaker: 'caller', startSec: 4, endSec: 9, text: 'I have a question about my account.' },
-      { speaker: 'agent', startSec: 9, endSec: 13, text: "Of course, I'd be happy to help." },
-    ],
+    segments: {
+      speakers: [
+        { speaker: 'speaker_0', role: 'Agent', startSec: 0, endSec: 4, text: 'Thank you for calling, how can I help you today?' },
+        { speaker: 'speaker_1', role: 'Customer', startSec: 4, endSec: 9, text: 'I have a question about my account.' },
+        { speaker: 'speaker_0', role: 'Agent', startSec: 9, endSec: 13, text: "Of course, I'd be happy to help." },
+      ],
+      speakerRoles: {
+        speaker_0: 'Agent',
+        speaker_1: 'Customer',
+      },
+    },
   }
 }
 

@@ -1,6 +1,7 @@
 import { WORKER_CALLBACK_HEADER } from './contract.js'
 import { transcribeAudio } from './deepgram.js'
 import { scoreTranscript } from './deepseek.js'
+import { assignSpeakerRoles, enrichTranscriptWithRoles } from './speakerRoles.js'
 import { processMockJob } from './mockPipeline.js'
 
 function llmApiKey() {
@@ -59,11 +60,20 @@ export async function processJob(job) {
   const buffer = Buffer.from(await audioResponse.arrayBuffer())
 
   const transcript = await transcribeAudio(buffer, mimeType, job.scorecard)
-  const results = await scoreTranscript(job.scorecard, transcript.fullText)
+
+  const [results, enrichedTranscript] = await Promise.all([
+    scoreTranscript(job.scorecard, transcript.fullText),
+    assignSpeakerRoles(transcript)
+      .then((roleMap) => enrichTranscriptWithRoles(transcript, roleMap))
+      .catch((err) => {
+        console.warn(`Speaker role assignment failed for job ${job.jobId}:`, err.message)
+        return transcript
+      }),
+  ])
 
   return postCallback(job, {
     status: 'COMPLETED',
-    transcript,
+    transcript: enrichedTranscript,
     results,
   })
 }
