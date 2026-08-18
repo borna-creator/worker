@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import { WORKER_CALLBACK_HEADER } from './contract.js'
 import { processMockJob } from './mockPipeline.js'
+import { enqueueJob, getQueueStats } from './jobQueue.js'
 
 const app = express()
 const PORT = Number(process.env.WORKER_PORT || 4000)
@@ -17,7 +18,7 @@ function requireWorkerSecret(req, res, next) {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', mode: 'mock', version: '0.1.0' })
+  res.json({ status: 'ok', mode: 'mock', version: '0.1.0', queue: getQueueStats() })
 })
 
 app.post('/jobs', requireWorkerSecret, async (req, res) => {
@@ -29,7 +30,7 @@ app.post('/jobs', requireWorkerSecret, async (req, res) => {
 
   res.status(202).json({ accepted: true, jobId: job.jobId })
 
-  setImmediate(async () => {
+  enqueueJob(async () => {
     try {
       await processMockJob(job)
       console.log(`✓ Job ${job.jobId} completed (mock)`)
@@ -60,6 +61,8 @@ if (!process.env.WORKER_SECRET) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
+  const { maxConcurrent } = getQueueStats()
   console.log(`✓ NumaIQ worker listening on http://0.0.0.0:${PORT}`)
+  console.log(`  Concurrency: ${maxConcurrent} jobs at a time`)
   console.log('  Mode: mock (Phase 2) — replace mockPipeline.js with Nova + DeepSeek in Phase 3')
 })
