@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "NumaIQ QA worker service (VPS 2) — mock scoring now, Nova + DeepSeek in Phase 3",
+  "description": "NumaIQ QA worker service (VPS 2) — Deepgram Nova-3 STT + DeepSeek scoring",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "health": "node scripts/health-check.js"
   },
   "dependencies": {
+    "@deepgram/sdk": "^5.8.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
   },

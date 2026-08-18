@@ -1,16 +1,17 @@
 # NumaIQ Worker (VPS 2)
 
-Standalone service that receives QA jobs from the NumaIQ API (VPS 1), downloads call audio, runs scoring, and posts results back.
+Standalone service that receives QA jobs from the NumaIQ API (VPS 1), downloads call audio, transcribes with **Deepgram Nova-3**, scores with **DeepSeek**, and posts results back.
 
-**Phase 2:** Mock transcript + scores (for pipeline testing).  
-**Phase 3:** Replace `src/mockPipeline.js` with Nova STT + DeepSeek — same HTTP contract.
+**Phase 3:** Per-scorecard Deepgram feature toggles (summarization, sentiment, diarization, redaction, etc.) configured in the NumaIQ UI under each scorecard.
 
 ## What you need
 
 | Server | Role | Required env |
 |--------|------|--------------|
 | VPS 1 | NumaIQ API + UI | `WORKER_SECRET`, `WORKER_URL=http://<vps2-ip>:4000`, `API_DOMAIN` |
-| VPS 2 | This worker | `WORKER_SECRET` (same value), `WORKER_PORT=4000` |
+| VPS 2 | This worker | `WORKER_SECRET`, `DEEPGRAM_API_KEY`, `DEEPSEEK_API_KEY`, `WORKER_PORT=4000` |
+
+Set `WORKER_MODE=mock` on VPS 2 to skip API keys and use placeholder transcript/scores (Phase 2 behavior).
 
 Firewall:
 
@@ -39,7 +40,7 @@ Verify from VPS 2:
 
 ```bash
 curl http://127.0.0.1:4000/health
-# {"status":"ok","mode":"mock","version":"0.1.0"}
+# {"status":"ok","mode":"live","version":"0.2.0",...}
 ```
 
 On VPS 1, set in `.env`:
@@ -56,12 +57,12 @@ Restart the API: `sudo systemctl restart numaiq-api`
 1. Log in to NumaIQ, create a scorecard with a few criteria.
 2. Upload a call and **select that scorecard**.
 3. Call status: `PENDING → PROCESSING → COMPLETED`.
-4. Open the call — you should see mock transcript, per-criterion scores, and overall %.
+4. Open the call — transcript, AI summary (if enabled), sentiment, criterion scores, and overall %.
 
 Worker logs on VPS 2:
 
 ```
-✓ Job clx… completed (mock)
+✓ Job clx… completed (live)
 ```
 
 ## Local development (both servers on your machine)
@@ -106,7 +107,16 @@ Success:
 ```json
 {
   "status": "COMPLETED",
-  "transcript": { "fullText": "…", "segments": [] },
+  "transcript": {
+    "fullText": "…",
+    "segments": {
+      "summary": "…",
+      "sentiment": { "average": "neutral", "sentiment_score": -0.13 },
+      "speakers": [{ "speaker": "speaker_0", "startSec": 0, "endSec": 4, "text": "…" }],
+      "entities": [],
+      "paragraphs": "…"
+    }
+  },
   "results": [{ "criterionId": "…", "value": "YES", "passed": true, "reasoning": "…" }]
 }
 ```
