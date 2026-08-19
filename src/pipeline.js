@@ -76,5 +76,6 @@ export async function processJob(job) {
     status: 'COMPLETED',
     transcript: compactTranscriptForCallback(enrichedTranscript),
     results,
+    durationSec: enrichedTranscript.durationSec ?? null,
   })
 }

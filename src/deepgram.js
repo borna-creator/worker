@@ -67,7 +67,13 @@ export function parseDeepgramResponse(result) {
     speakers: buildSpeakerSegments(result?.results?.utterances),
   }
 
-  return { fullText, segments }
+  const durationRaw = result?.metadata?.duration
+  const durationSec =
+    durationRaw != null && !Number.isNaN(Number(durationRaw))
+      ? Math.round(Number(durationRaw))
+      : null
+
+  return { fullText, segments, durationSec }
 }
 
 export async function transcribeAudio(buffer, mimeType, scorecard) {
