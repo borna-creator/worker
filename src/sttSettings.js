@@ -18,14 +18,19 @@ export const DEFAULT_STT_SETTINGS = Object.freeze({
   redactNumbers: true,
 })
 
-export function normalizeSttSettings(input) {
-  const base = { ...DEFAULT_STT_SETTINGS }
-  if (input == null || typeof input !== 'object') return base
+export function isSummarizationSupported(language) {
+  return language == null || language === 'ENGLISH'
+}
 
-  for (const key of Object.keys(DEFAULT_STT_SETTINGS)) {
-    if (key in input) base[key] = Boolean(input[key])
+export function normalizeSttSettings(input, language) {
+  const base = { ...DEFAULT_STT_SETTINGS }
+  if (input != null && typeof input === 'object') {
+    for (const key of Object.keys(DEFAULT_STT_SETTINGS)) {
+      if (key in input) base[key] = Boolean(input[key])
+    }
   }
   if (base.paragraphs) base.punctuate = true
+  if (!isSummarizationSupported(language)) base.summarize = false
   return base
 }
 
@@ -61,7 +66,7 @@ export function buildDeepgramListenOptions(sttSettings, languageCode) {
     numerals: settings.numerals,
   }
 
-  if (settings.summarize) options.summarize = 'v2'
+  if (settings.summarize && languageCode === 'en') options.summarize = 'v2'
   if (settings.detectEntities) options.detect_entities = true
   if (settings.sentiment) options.sentiment = true
   if (redact.length > 0) options.redact = redact
