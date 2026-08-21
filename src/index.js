@@ -3,7 +3,7 @@ import express from 'express'
 import { WORKER_CALLBACK_HEADER } from './contract.js'
 import { getWorkerMode, getWorkerModeReasons, processJob } from './pipeline.js'
 import { enqueueJob, getQueueStats } from './jobQueue.js'
-import { createVoiceSession, isVoiceConfigured } from './voiceSession.js'
+import { createVoiceSession, getVoiceConfigStatus, logVoiceConfigOnStartup } from './voiceSession.js'
 
 const app = express()
 const PORT = Number(process.env.WORKER_PORT || 4000)
@@ -21,11 +21,13 @@ function requireWorkerSecret(req, res, next) {
 
 app.get('/health', (_req, res) => {
   const mode = getWorkerMode()
+  const voice = getVoiceConfigStatus()
   res.json({
     status: 'ok',
     mode,
     version: '0.2.0',
     queue: getQueueStats(),
+    voice: { configured: voice.configured },
     ...(mode === 'mock' ? { modeReasons: getWorkerModeReasons() } : {}),
   })
 })
@@ -65,7 +67,11 @@ app.post('/jobs', requireWorkerSecret, async (req, res) => {
 })
 
 app.get('/voice/status', requireWorkerSecret, (_req, res) => {
-  res.json({ available: isVoiceConfigured() })
+  const voice = getVoiceConfigStatus()
+  res.json({
+    available: voice.configured,
+    missing: voice.configured ? undefined : voice.missing,
+  })
 })
 
 app.post('/voice/session', requireWorkerSecret, async (req, res) => {
@@ -88,6 +94,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✓ NumaIQ worker listening on http://0.0.0.0:${PORT}`)
   console.log(`  Concurrency: ${maxConcurrent} jobs at a time`)
   console.log(`  Mode: ${workerMode}`)
+  logVoiceConfigOnStartup()
   if (workerMode === 'mock') {
     for (const reason of getWorkerModeReasons()) {
       console.log(`  Mock reason: ${reason}`)
