@@ -68,10 +68,11 @@ app.post('/jobs', requireWorkerSecret, async (req, res) => {
 
 app.get('/voice/status', requireWorkerSecret, (_req, res) => {
   const voice = getVoiceConfigStatus()
-  res.json({
-    available: voice.configured,
-    missing: voice.configured ? undefined : voice.missing,
-  })
+    res.json({
+      available: voice.configured,
+      missing: voice.configured ? undefined : voice.missing,
+      agentConfigured: voice.agentConfigured,
+    })
 })
 
 app.post('/voice/session', requireWorkerSecret, async (req, res) => {
