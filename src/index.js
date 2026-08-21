@@ -3,6 +3,7 @@ import express from 'express'
 import { WORKER_CALLBACK_HEADER } from './contract.js'
 import { getWorkerMode, getWorkerModeReasons, processJob } from './pipeline.js'
 import { enqueueJob, getQueueStats } from './jobQueue.js'
+import { createVoiceSession, isVoiceConfigured } from './voiceSession.js'
 
 const app = express()
 const PORT = Number(process.env.WORKER_PORT || 4000)
@@ -61,6 +62,20 @@ app.post('/jobs', requireWorkerSecret, async (req, res) => {
       }
     }
   })
+})
+
+app.get('/voice/status', requireWorkerSecret, (_req, res) => {
+  res.json({ available: isVoiceConfigured() })
+})
+
+app.post('/voice/session', requireWorkerSecret, async (req, res) => {
+  try {
+    const session = await createVoiceSession(req.body ?? {})
+    res.json({ session })
+  } catch (err) {
+    console.error('Voice session error:', err.message)
+    res.status(err.status || 503).json({ error: 'Voice service unavailable' })
+  }
 })
 
 if (!process.env.WORKER_SECRET) {
