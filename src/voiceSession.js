@@ -2,8 +2,17 @@ import { randomBytes } from 'crypto'
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk'
 
 const URL_KEYS = ['LIVEKIT_URL', 'LIVEKIT_WS_URL']
+const PUBLIC_URL_KEYS = ['LIVEKIT_PUBLIC_URL', 'LIVEKIT_CLIENT_URL']
 const API_KEY_KEYS = ['LIVEKIT_API_KEY', 'LIVEKIT_API_KEY_ID']
 const API_SECRET_KEYS = ['LIVEKIT_API_SECRET', 'LIVEKIT_API_KEY_SECRET']
+
+const AGENT_ENV_BY_LANGUAGE = {
+  ENGLISH: ['LIVEKIT_AGENT_ENGLISH', 'LIVEKIT_AGENT_NAME'],
+  FRENCH: ['LIVEKIT_AGENT_FRENCH'],
+  ARABIC: ['LIVEKIT_AGENT_ARABIC'],
+}
+
+const VOICE_LANGUAGES = ['ENGLISH', 'FRENCH', 'ARABIC']
 
 function readFirstEnv(keys) {
   for (const key of keys) {
@@ -13,7 +22,7 @@ function readFirstEnv(keys) {
   return null
 }
 
-/** Server SDK calls need https:// — convert wss:// from LiveKit Cloud dashboard. */
+/** Server SDK calls need https:// — convert wss:// from dashboard or local server. */
 export function toLiveKitHttpUrl(url) {
   const trimmed = url?.trim()
   if (!trimmed) return trimmed
@@ -22,24 +31,46 @@ export function toLiveKitHttpUrl(url) {
   return trimmed
 }
 
+export function resolveAgentNameForLanguage(language) {
+  const lang = VOICE_LANGUAGES.includes(language) ? language : 'ENGLISH'
+  const envKeys = AGENT_ENV_BY_LANGUAGE[lang] ?? AGENT_ENV_BY_LANGUAGE.ENGLISH
+  for (const envKey of envKeys) {
+    const name = process.env[envKey]?.trim()
+    if (name) return name
+  }
+  return null
+}
+
+function getAgentsByLanguage() {
+  const agents = {}
+  for (const lang of VOICE_LANGUAGES) {
+    agents[lang] = Boolean(resolveAgentNameForLanguage(lang))
+  }
+  return agents
+}
+
+/** Browser WebSocket URL — may differ from internal LIVEKIT_URL when proxied later. */
+function getClientConnectUrl() {
+  return readFirstEnv(PUBLIC_URL_KEYS)?.value ?? readFirstEnv(URL_KEYS)?.value ?? null
+}
+
 export function getVoiceConfigStatus() {
   const url = readFirstEnv(URL_KEYS)
   const apiKey = readFirstEnv(API_KEY_KEYS)
   const apiSecret = readFirstEnv(API_SECRET_KEYS)
+  const agents = getAgentsByLanguage()
 
   const missing = []
   if (!url) missing.push('LIVEKIT_URL')
   if (!apiKey) missing.push('LIVEKIT_API_KEY')
   if (!apiSecret) missing.push('LIVEKIT_API_SECRET')
 
-  const agentName = process.env.LIVEKIT_AGENT_NAME?.trim() || null
-
   return {
     configured: missing.length === 0,
     missing,
-    connectUrl: url?.value ?? null,
-    agentName,
-    agentConfigured: Boolean(agentName),
+    connectUrl: getClientConnectUrl(),
+    agents,
+    agentConfigured: Object.values(agents).some(Boolean),
   }
 }
 
@@ -54,6 +85,7 @@ function getVoiceConfig() {
 
   return {
     connectUrl: readFirstEnv(URL_KEYS).value,
+    clientConnectUrl: getClientConnectUrl(),
     apiKey: readFirstEnv(API_KEY_KEYS).value,
     apiSecret: readFirstEnv(API_SECRET_KEYS).value,
   }
@@ -69,8 +101,9 @@ async function dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agen
   await dispatch.createDispatch(sessionId, agentName)
 }
 
-export async function createVoiceSession({ participantId, participantName }) {
-  const { connectUrl, apiKey, apiSecret } = getVoiceConfig()
+export async function createVoiceSession({ participantId, participantName, language = 'ENGLISH' }) {
+  const { connectUrl, clientConnectUrl, apiKey, apiSecret } = getVoiceConfig()
+  const resolvedLanguage = VOICE_LANGUAGES.includes(language) ? language : 'ENGLISH'
 
   if (!participantId?.trim()) {
     const err = new Error('Participant id is required')
@@ -78,7 +111,8 @@ export async function createVoiceSession({ participantId, participantName }) {
     throw err
   }
 
-  const sessionId = `numa-${randomBytes(8).toString('hex')}`
+  const agentName = resolveAgentNameForLanguage(resolvedLanguage)
+  const sessionId = `numa-${resolvedLanguage.toLowerCase()}-${randomBytes(8).toString('hex')}`
   const identity = String(participantId).trim()
   const name = participantName?.trim() || 'Super Admin'
 
@@ -95,8 +129,8 @@ export async function createVoiceSession({ participantId, participantName }) {
     canSubscribe: true,
   })
 
-  const agentName = process.env.LIVEKIT_AGENT_NAME?.trim()
   const agent = {
+    language: resolvedLanguage,
     configured: Boolean(agentName),
     dispatched: false,
   }
@@ -105,17 +139,15 @@ export async function createVoiceSession({ participantId, participantName }) {
     try {
       await dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agentName)
       agent.dispatched = true
-      agent.name = agentName
     } catch (err) {
-      console.error('Voice agent dispatch failed:', err.message)
+      console.error(`Voice agent dispatch failed (${resolvedLanguage}):`, err.message)
       agent.error = err.message
-      agent.name = agentName
     }
   }
 
   return {
     sessionId,
-    connectUrl,
+    connectUrl: clientConnectUrl,
     accessToken: await token.toJwt(),
     agent,
   }
@@ -128,9 +160,8 @@ export function logVoiceConfigOnStartup() {
     return
   }
   console.log(`  Voice: configured (${status.connectUrl})`)
-  if (status.agentName) {
-    console.log(`  Voice agent: ${status.agentName}`)
-  } else {
-    console.log('  Voice agent: LIVEKIT_AGENT_NAME not set — sessions will not dispatch an agent')
+  for (const lang of VOICE_LANGUAGES) {
+    const name = resolveAgentNameForLanguage(lang)
+    console.log(`  Voice agent ${lang}: ${name ?? 'not configured'}`)
   }
 }

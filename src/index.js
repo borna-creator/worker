@@ -72,6 +72,7 @@ app.get('/voice/status', requireWorkerSecret, (_req, res) => {
       available: voice.configured,
       missing: voice.configured ? undefined : voice.missing,
       agentConfigured: voice.agentConfigured,
+      agents: voice.agents,
     })
 })
 
