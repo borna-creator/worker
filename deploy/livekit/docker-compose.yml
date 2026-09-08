@@ -1,0 +1,26 @@
+# Self-hosted LiveKit on VPS 2 (alongside numaiq-worker).
+# Copy livekit.yaml.example → livekit.yaml and add keys from:
+#   docker run --rm livekit/livekit-server generate-keys
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - livekit_redis:/data
+
+  livekit:
+    image: livekit/livekit-server:latest
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-60000:50000-60000/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    depends_on:
+      - redis
+
+volumes:
+  livekit_redis:

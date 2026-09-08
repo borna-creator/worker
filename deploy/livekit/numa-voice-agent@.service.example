@@ -1,0 +1,23 @@
+[Unit]
+Description=Numa voice agent (%i)
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/voice-agent
+EnvironmentFile=/var/www/voice-agent/.env.%i
+# Edit ExecStart to your agent command, e.g. Python or Node LiveKit agent:
+# ExecStart=/usr/bin/python3 agent.py start --name numa-agent-%i
+ExecStart=/usr/bin/node /var/www/voice-agent/agent.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# Install:
+#   sudo cp deploy/livekit/numa-voice-agent@.service.example /etc/systemd/system/numa-voice-agent@.service
+# Create /var/www/voice-agent/.env.en, .env.fr, .env.ar with LIVEKIT_* and AGENT_LANGUAGE
+#   sudo systemctl enable --now numa-voice-agent@en numa-voice-agent@fr numa-voice-agent@ar
