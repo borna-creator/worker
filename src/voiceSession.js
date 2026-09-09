@@ -95,13 +95,29 @@ export function isVoiceConfigured() {
   return getVoiceConfigStatus().configured
 }
 
-async function dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agentName) {
+async function dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agentName, prompts) {
   const httpUrl = toLiveKitHttpUrl(connectUrl)
   const dispatch = new AgentDispatchClient(httpUrl, apiKey, apiSecret)
-  await dispatch.createDispatch(sessionId, agentName)
+
+  const options =
+    prompts?.systemPrompt && prompts?.greetingPrompt
+      ? {
+          metadata: JSON.stringify({
+            systemPrompt: prompts.systemPrompt,
+            greetingPrompt: prompts.greetingPrompt,
+          }),
+        }
+      : undefined
+
+  await dispatch.createDispatch(sessionId, agentName, options)
 }
 
-export async function createVoiceSession({ participantId, participantName, language = 'ENGLISH' }) {
+export async function createVoiceSession({
+  participantId,
+  participantName,
+  language = 'ENGLISH',
+  prompts,
+}) {
   const { connectUrl, clientConnectUrl, apiKey, apiSecret } = getVoiceConfig()
   const resolvedLanguage = VOICE_LANGUAGES.includes(language) ? language : 'ENGLISH'
 
@@ -137,7 +153,7 @@ export async function createVoiceSession({ participantId, participantName, langu
 
   if (agentName) {
     try {
-      await dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agentName)
+      await dispatchVoiceAgent(sessionId, connectUrl, apiKey, apiSecret, agentName, prompts)
       agent.dispatched = true
     } catch (err) {
       console.error(`Voice agent dispatch failed (${resolvedLanguage}):`, err.message)
